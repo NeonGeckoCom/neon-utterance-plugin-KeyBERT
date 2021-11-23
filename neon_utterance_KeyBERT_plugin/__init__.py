@@ -38,6 +38,7 @@ class KeyBERTExtractor(UtteranceTransformer):
         self.use_maxsum = True
         self.use_mmr = False
         self.kw_model = KeyBERT(model=model)
+        self.thresh = self.config.get("thresh", 0.4)
 
     def extract(self, doc, lang="en"):
         if lang == "en":
@@ -62,7 +63,13 @@ class KeyBERTExtractor(UtteranceTransformer):
         context = context or {}
         lang = context.get("lang", "en").split("-")[0]
         for utt in utterances:
-            keywords += self.extract(utt, lang=lang)
+            try:
+                keywords += [k for k in self.extract(utt, lang=lang)
+                             if k[1] >= self.thresh]
+            except TypeError:
+                # TypeError: 'NoneType' object is not iterable
+                # with self.use_maxsum if candidates detection fails
+                pass
 
         keywords = sorted(keywords, key=lambda k: k[1], reverse=True)
         # return unchanged utterances + data
