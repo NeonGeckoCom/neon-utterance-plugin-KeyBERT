@@ -26,9 +26,12 @@
 from keybert import KeyBERT
 
 from neon_transformers import UtteranceTransformer
+from neon_transformers.tasks import UtteranceTask
 
 
 class KeyBERTExtractor(UtteranceTransformer):
+    task = UtteranceTask.KEYWORD_EXTRACTION
+
     def __init__(self, name="KeyBERT", priority=60):
         super().__init__(name, priority)
         # TODO read all from config
@@ -74,4 +77,3 @@ class KeyBERTExtractor(UtteranceTransformer):
         keywords = sorted(keywords, key=lambda k: k[1], reverse=True)
         # return unchanged utterances + data
         return utterances, {"keybert_keywords": keywords}
-
