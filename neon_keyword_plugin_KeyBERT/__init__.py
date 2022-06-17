@@ -23,17 +23,19 @@
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE,  EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+# # NEON AI (TM) SOFTWARE, Software Development Kit & Application Development System
+# # All trademark and other rights reserved by their respective owners
+# # Copyright 2008-2021 Neongecko.com Inc.
+
 from keybert import KeyBERT
 
-from neon_transformers import UtteranceTransformer
-from neon_transformers.tasks import UtteranceTask
+from ovos_plugin_manager.keywords import KeywordExtractor
 
 
-class KeyBERTExtractor(UtteranceTransformer):
-    task = UtteranceTask.KEYWORD_EXTRACTION
+class KeyBERTExtractor(KeywordExtractor):
 
-    def __init__(self, name="KeyBERT", priority=60):
-        super().__init__(name, priority)
+    def __init__(self, config=None):
+        super(KeyBERTExtractor, self).__init__(config)
         # TODO read all from config
         model = "all-MiniLM-L6-v2"
         self.max_ngram_size = 3
@@ -43,37 +45,34 @@ class KeyBERTExtractor(UtteranceTransformer):
         self.kw_model = KeyBERT(model=model)
         self.thresh = self.config.get("thresh", 0.4)
 
-    def extract(self, doc, lang="en"):
+    def extract(self, text, lang):
         if lang == "en":
             stopwords = "english"
         else:
             stopwords = []
+        kws = []
         if self.use_maxsum:
-            return self.kw_model.extract_keywords(doc,
-                                                  keyphrase_ngram_range=(1, self.max_ngram_size),
-                                                  stop_words=stopwords,
-                                                  use_maxsum=True, nr_candidates=20, top_n=5)
-        if self.use_mmr:
-            return self.kw_model.extract_keywords(doc,
-                                                  keyphrase_ngram_range=(1, self.max_ngram_size),
-                                                  stop_words=stopwords,
-                                                  use_mmr=True, diversity=0.7)
-        return self.kw_model.extract_keywords(doc, stop_words=stopwords,
-                                              keyphrase_ngram_range=(1, self.max_ngram_size))
-
-    def transform(self, utterances, context=None):
-        keywords = []
-        context = context or {}
-        lang = context.get("lang", "en").split("-")[0]
-        for utt in utterances:
             try:
-                keywords += [k for k in self.extract(utt, lang=lang)
-                             if k[1] >= self.thresh]
+                kws = self.kw_model.extract_keywords(text,
+                                                     keyphrase_ngram_range=(1, self.max_ngram_size),
+                                                     stop_words=stopwords,
+                                                     use_maxsum=True, nr_candidates=20, top_n=5)
             except TypeError:
                 # TypeError: 'NoneType' object is not iterable
                 # with self.use_maxsum if candidates detection fails
                 pass
 
-        keywords = sorted(keywords, key=lambda k: k[1], reverse=True)
-        # return unchanged utterances + data
-        return utterances, {"keybert_keywords": keywords}
+        if not kws and self.use_mmr:
+            kws = self.kw_model.extract_keywords(text,
+                                                 keyphrase_ngram_range=(1, self.max_ngram_size),
+                                                 stop_words=stopwords,
+                                                 use_mmr=True, diversity=0.7)
+
+        if not kws:
+            kws = self.kw_model.extract_keywords(text, stop_words=stopwords,
+                                                 keyphrase_ngram_range=(1, self.max_ngram_size))
+
+        kws = sorted([k for k in kws if k[1] >= self.thresh],
+                     key=lambda k: k[1], reverse=True)
+        return kws
+
