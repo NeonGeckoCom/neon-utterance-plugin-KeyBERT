@@ -22,7 +22,7 @@ allow_unknown = False
 allow_unlicense = True
 allow_ambiguous = False
 
-pkg_name = "neon_utterance_KeyBERT_plugin"
+pkg_name = "neon_keyword_plugin_KeyBERT"
 
 
 class TestLicensing(unittest.TestCase):

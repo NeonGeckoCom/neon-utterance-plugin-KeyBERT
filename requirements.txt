@@ -1,2 +1,2 @@
-neon_transformers
+ovos-plugin-manager>=0.0.18a5
 keybert
