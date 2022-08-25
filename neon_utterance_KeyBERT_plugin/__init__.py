@@ -77,3 +77,4 @@ class KeyBERTExtractor(UtteranceTransformer):
         keywords = sorted(keywords, key=lambda k: k[1], reverse=True)
         # return unchanged utterances + data
         return utterances, {"keybert_keywords": keywords}
+
